@@ -1,53 +1,53 @@
 version: '3.8'
 
 services:
-  mysql-service:
-    image: mysql:8.4
-    container_name: <valor>
+  postgresql-service:
+    image: postgres:15
+    container_name: postgresql-container
     environment:
-      MYSQL_ROOT_PASSWORD: <valor>
-      MYSQL_DATABASE: <valor>
-      MYSQL_USER: <valor>
-      MYSQL_PASSWORD: <valor>
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: sonarqube
     volumes:
-      - <valor>:<valor>
+      - postgresql-data:/var/lib/postgresql/data
     networks:
-      - <valor>
+      - sonar-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 20s
-      timeout: 20s
-      retries: 10
-      start_period: 30s
+      test: ["CMD-SHELL", "pg_isready -U sonar"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
-  wordpress-service:
-    image: wordpress:6
-    container_name: <valor>
+  sonarqube-service:
+    image: sonarqube:community
+    container_name: sonarqube-container
     ports:
-      - <valor>:<valor>
+      - "9000:9000"
     environment:
-      WORDPRESS_DB_HOST: <valor>
-      WORDPRESS_DB_USER: <valor>
-      WORDPRESS_DB_PASSWORD: <valor>
-      WORDPRESS_DB_NAME: <valor>
+      SONAR_JDBC_URL: jdbc:postgresql://postgresql-container:5432/sonarqube
+      SONAR_JDBC_USERNAME: admin
+      SONAR_JDBC_PASSWORD: admin123
     volumes:
-      - <valor>:<valor>
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-extensions:/opt/sonarqube/extensions
     networks:
-      - <valor>
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 20s
-      timeout: 20s
-      retries: 10
-      start_period: 50s
-    restart: <valor>
+      - sonar-network
     depends_on:
-      mysql-service:
-        condition: <valor>
+      postgresql-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 volumes:
-  mysql-data:
-  wordpress-vol:
+  postgresql-data:
+  sonarqube-data:
+  sonarqube-logs:
+  sonarqube-extensions:
 
 networks:
-  net-wp:
+  sonar-network:
     driver: bridge
